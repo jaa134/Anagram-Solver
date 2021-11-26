@@ -1,6 +1,7 @@
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 import java.nio.charset.StandardCharsets;
@@ -14,23 +15,23 @@ public class AnagramSolver {
 
   private static final int NUM_REQUIRED_ARGS = 4;
 
-  private int minLength;
-  private List<String> words;
+  private int minWordLength;
+  private Set<String> words;
   private Pattern pattern;
 
-  public AnagramSolver (String dictionaryPath, int minLength, char keyChar, Set<Character> optionalChars) {
-    this.minLength = minLength;
+  public AnagramSolver (String dictionaryPath, int minWordLength, char requiredChar, Set<Character> optionalChars) {
+    this.minWordLength = minWordLength;
     this.words = this.getWordsFromFile(dictionaryPath);
-    this.pattern = this.constructPattern(keyChar, optionalChars);
+    this.pattern = this.constructPattern(requiredChar, optionalChars);
   }
 
-  // TODO add error handling for null
-  private List<String> getWordsFromFile (String dictionaryPath) {
-    List<String> result = null;
+  private Set<String> getWordsFromFile (String dictionaryPath) {
+    Set<String> result = null;
     try {
       Path resolvedPath = Paths.get(dictionaryPath);
       Stream<String> lines = Files.lines(resolvedPath, StandardCharsets.ISO_8859_1);
-      result = lines.collect(Collectors.toList());
+      result = lines.collect(Collectors.toSet());
+      result.removeIf(word -> word.length() < this.minWordLength);
     } catch (Exception e) {
       System.err.println(String.format("Failed to load words from file at '%s'!", dictionaryPath));
       e.printStackTrace();
@@ -38,10 +39,10 @@ public class AnagramSolver {
     return result;
   }
 
-  private Pattern constructPattern (char keyChar, Set<Character> optionalChars) {
+  private Pattern constructPattern (char requiredChar, Set<Character> optionalChars) {
     String regexPattern = optionalChars.size() == 0
-      ? String.format("^[%c]*$", keyChar)
-      : String.format("^[%2$s]*%1$c[%2$s]*$", keyChar, String.valueOf(optionalChars) + keyChar);
+      ? String.format("^[%c]*$", requiredChar)
+      : String.format("^[%2$s]*%1$c[%2$s]*$", requiredChar, String.valueOf(optionalChars) + requiredChar);
     return Pattern.compile(regexPattern, Pattern.CASE_INSENSITIVE);
   }
 
@@ -49,9 +50,9 @@ public class AnagramSolver {
     if (this.words == null) {
       System.err.println("Could not find solution! A valid dictionary was not parsed.");
     } else {
-      List<String> results = new ArrayList<String>();
+      Set<String> results = new HashSet<>();
       for (String word : words) {
-        if (word.length() >= this.minLength && this.pattern.matcher(word).matches()) {
+        if (this.pattern.matcher(word).matches()) {
           results.add(word);
         }
       }
@@ -64,8 +65,8 @@ public class AnagramSolver {
 
   private static List<String> getInputErrors (String[] args) {
     List<String> results = new ArrayList<String>();
-    if (args.length < NUM_REQUIRED_ARGS) {
-      results.add("Missing required args...");
+    if (args.length != NUM_REQUIRED_ARGS) {
+      results.add("Incorrect number of args supplied");
     } else {
       if (args[0].length() == 0 || !args[0].endsWith(".txt")) {
         results.add("Dictionary path must be specified and point to a valid text file");
@@ -83,7 +84,7 @@ public class AnagramSolver {
     return results;
   }
 
-  // Use like "<path> <minLength> <keyChar> <optionalChars>"
+  // Use like "<path> <minWordLength> <requiredChar> <optionalChars>"
   // Example: "path/to/txt/file 5 e abcd"
   public static void main (String[] args) {
     List<String> errors = AnagramSolver.getInputErrors(args);
@@ -93,14 +94,13 @@ public class AnagramSolver {
       }
     } else {
       String dictionaryPath = args[0];
-      int minLength = Integer.parseInt(args[1]);
-      char keyChar = args[2].charAt(0);
+      int minWordLength = Integer.parseInt(args[1]);
+      char requiredChar = args[2].charAt(0);
       Set<Character> optionalChars = args[3]
         .chars()
-        .distinct()
         .mapToObj(c -> (char) c)
         .collect(Collectors.toSet());
-      AnagramSolver solver = new AnagramSolver(dictionaryPath, minLength, keyChar, optionalChars);
+      AnagramSolver solver = new AnagramSolver(dictionaryPath, minWordLength, requiredChar, optionalChars);
       solver.printSolution();
     }
   }
