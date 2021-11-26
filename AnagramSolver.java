@@ -12,7 +12,7 @@ import java.util.regex.Matcher;
 
 public class AnagramSolver {
 
-  private static int NUM_REQUIRED_VARS = 4;
+  private static final int NUM_REQUIRED_ARGS = 4;
 
   private int minLength;
   private List<String> words;
@@ -41,7 +41,7 @@ public class AnagramSolver {
   private Pattern constructPattern (char keyChar, Set<Character> optionalChars) {
     String regexPattern = optionalChars.size() == 0
       ? String.format("^[%c]*$", keyChar)
-      : String.format("^[%2$s]*%1$c[%2$s]*$", keyChar, String.valueOf(optionalChars));
+      : String.format("^[%2$s]*%1$c[%2$s]*$", keyChar, String.valueOf(optionalChars) + keyChar);
     return Pattern.compile(regexPattern, Pattern.CASE_INSENSITIVE);
   }
 
@@ -64,7 +64,7 @@ public class AnagramSolver {
 
   private static List<String> getInputErrors (String[] args) {
     List<String> results = new ArrayList<String>();
-    if (args.length < NUM_REQUIRED_VARS) {
+    if (args.length < NUM_REQUIRED_ARGS) {
       results.add("Missing required args...");
     } else {
       if (args[0].length() == 0 || !args[0].endsWith(".txt")) {
